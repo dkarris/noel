@@ -4,7 +4,7 @@ module class docstring
 
 # used for API class
 import requests
-
+from deribitapi import deribit_api
 
 
 class Event(object):
@@ -18,7 +18,7 @@ class Account(object):
     """
     Account class docstring
     """
-    def __init__(self, name, currency, api, apisecret):
+    def __init__(self, name, currency, api=None, apisecret = None):
         """
         Init object instance
         """
@@ -27,20 +27,33 @@ class Account(object):
         self.api = api
         self.apisecret = apisecret
         self.enabletrade = False  # can't trade by default
+        self.in_trade_position = True
+
+    def get_account_info():
+        """
+        execute API deribit call for account account_details
+        returns object with account details
+        """
+        return deribit_api.account()
+
 
     @staticmethod
-    def get_total_balance():
+    def get_current_positions():
         """
-        aaa
+        Call deribit API and return current positions
         """
-        pass
+        # Call deribit API
+        return deribit_api.positions()
 
     @staticmethod
-    def get_available_balance():
+    def get_open_orders():
         """
-        aaa
+        Call deribit API and reurn opened and reserved get_open_orders
         """
+        # call deribit api
+        # return result
         pass
+
 
     @staticmethod
     def deposit_money():
@@ -55,7 +68,6 @@ class Account(object):
         Withdraw from account to exchange
         """
         pass
-
 
 
 class Position(object):
@@ -101,6 +113,20 @@ class Position(object):
         return False
 
 
+class Transaction(object):
+    """
+    Class docstring
+    """
+    def __init__(self):
+        """
+        Method docstring
+        """
+        pass
+
+
+
+
+# this class is replaced with the original deribit_api client
 class DeribitAPI(object):
     """
     API docstring
@@ -115,7 +141,7 @@ class DeribitAPI(object):
     baseurl = 'https://www.deribit.com'
 
     # @classmethod
-    
+
     @staticmethod
     def test_api():
         """
@@ -124,5 +150,3 @@ class DeribitAPI(object):
         endpoint = DeribitAPI.baseurl + '/api/v1/public/test'
         print (endpoint)
         return requests.get(endpoint).json()
-
-
