@@ -4,17 +4,12 @@ Module docstring
 
 from noelclasses import Account, Position, Transaction
 
-global in_trade_position
-global balance
 def initialize(account):
     """
     Is launched once
     """
     # Get account details
-    account_details = account.get_account_info()
-    
-
-
+    account_info = account.get_account_info()
     # Find all opened positions
     current_position_orders = account_deribit.get_current_positions()
     current_open_orders = account_deribit.get_open_orders()
@@ -24,24 +19,24 @@ def initialize(account):
         # kill open orders
         pass
     # set flag if we are in trade position
-    if (current_position_orders>0) or (current_open_orders>0):
+    if (current_position_orders > 0) or (current_open_orders > 0):
         account.in_trade_position = True
     else:
         account.in_trade_position = False
 
     print ('Initialized account "%s" successfully:') % (account.name)
     print ('Current opened positioned:')
-    for index,obj in enumerate(current_position_orders):
+    for index, obj in enumerate(current_position_orders):
         print ("Position:" + str(index+1))
-        for key,value in obj.items():
-            print (str(key) + ":" + str(value))
-
-
-
-
-
+        for key, value in obj.items():
+          print (str(key) + ":" + str(value))
     # print ('current open orders: %s') % (current_open_orders)
     print ('**********************************************************')
+    print ('now print account property after init')
+    for key, value in account.account_info.items():
+        print (str(key) + ":" + str(value))
+
+
 def main(account):
     """
     Main body loop
@@ -50,7 +45,6 @@ def main(account):
     while keep_running:
         pass
 
-account_deribit = Account('main_account','BTC')
-
+account_deribit = Account('main_account', 'BTC')
 initialize(account_deribit)
-main(account_deribit)
+# main(account_deribit)

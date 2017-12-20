@@ -18,7 +18,7 @@ class Account(object):
     """
     Account class docstring
     """
-    def __init__(self, name, currency, api=None, apisecret = None):
+    def __init__(self, name, currency, api=None, apisecret=None):
         """
         Init object instance
         """
@@ -28,14 +28,15 @@ class Account(object):
         self.apisecret = apisecret
         self.enabletrade = False  # can't trade by default
         self.in_trade_position = True
-
+        self.account_info = self.get_account_info() # get initial account parameters
+    
+    @staticmethod
     def get_account_info():
         """
-        execute API deribit call for account account_details
-        returns object with account details
+        execute API deribit call for account_details
+        returns JSON with account details
         """
         return deribit_api.account()
-
 
     @staticmethod
     def get_current_positions():
