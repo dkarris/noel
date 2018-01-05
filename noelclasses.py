@@ -4,7 +4,18 @@ module class docstring
 
 # used for API class
 import requests
-from deribitapi import deribit_api
+from deribit_api import RestClient
+
+#import secret key stuff here
+TEST_URL = 'https://test.deribit.com'
+KEY = '45Sxzh7sa1vN'
+KEY_SECRET = 'CPQEV33KLU3KJ2OC3FGI4LKTBEJAHJB4'
+
+#...
+#...
+
+#commented as it is not good approach
+#from deribitapi import deribit_api
 
 
 class Event(object):
@@ -18,7 +29,16 @@ class Account(object):
     """
     Account class docstring
     """
+<<<<<<< HEAD
+
+
+    #TODO implement api init method to replace external deribit_api setup
+
+
+    def __init__(self, name, currency, api=None, apisecret = None):
+=======
     def __init__(self, name, currency, api=None, apisecret=None):
+>>>>>>> 0a718dbc668634f5ab443721bd26a038b5c32ce1
         """
         Init object instance
         """
@@ -27,6 +47,25 @@ class Account(object):
         self.api = api
         self.apisecret = apisecret
         self.enabletrade = False  # can't trade by default
+<<<<<<< HEAD
+        # self.state can be:
+        # -2 - in short position all orders executed
+        # -1 -  in short position, orders replaced
+        # 0 - out of position
+        # +1 in long position, orders replaced
+        # +2 in long position, all orders executed
+        self.state = 0
+        self.init_api()
+
+
+    def init_api(self):
+        self.api = RestClient(KEY, KEY_SECRET, TEST_URL)
+
+    def get_account_info(self):
+        """
+        execute API call for account account_details
+        returns object with account details
+=======
         self.in_trade_position = True
         self.account_info = self.get_account_info() # get initial account parameters
     
@@ -35,26 +74,28 @@ class Account(object):
         """
         execute API deribit call for account_details
         returns JSON with account details
+>>>>>>> 0a718dbc668634f5ab443721bd26a038b5c32ce1
         """
-        return deribit_api.account()
+        return self.api.account()
 
+<<<<<<< HEAD
+    def get_current_positions(self):
+=======
     @staticmethod
     def get_current_positions():
+>>>>>>> 0a718dbc668634f5ab443721bd26a038b5c32ce1
         """
         Call deribit API and return current positions
         """
         # Call deribit API
-        return deribit_api.positions()
+        return self.api.positions()
 
-    @staticmethod
-    def get_open_orders():
+    def get_open_orders(self):
         """
         Call deribit API and reurn opened and reserved get_open_orders
         """
         # call deribit api
-        # return result
-        pass
-
+        return self.api.getopenorders()
 
     @staticmethod
     def deposit_money():
@@ -127,27 +168,27 @@ class Transaction(object):
 
 
 
-# this class is replaced with the original deribit_api client
-class DeribitAPI(object):
-    """
-    API docstring
-    """
-    # @classmethod
-    # def __init__(cls):
-    #     """
-    #     DeribitAPI constructor
-    #     """
-    #     cls.baseurl = 'https://www.deribit.com'
-
-    baseurl = 'https://www.deribit.com'
-
-    # @classmethod
-
-    @staticmethod
-    def test_api():
-        """
-        test API. Returns API response in JSON
-        """
-        endpoint = DeribitAPI.baseurl + '/api/v1/public/test'
-        print (endpoint)
-        return requests.get(endpoint).json()
+# # this class is replaced with the original deribit_api client
+# class DeribitAPI(object):
+#     """
+#     API docstring
+#     """
+#     # @classmethod
+#     # def __init__(cls):
+#     #     """
+#     #     DeribitAPI constructor
+#     #     """
+#     #     cls.baseurl = 'https://www.deribit.com'
+#
+#     baseurl = 'https://www.deribit.com'
+#
+#     # @classmethod
+#
+#     @staticmethod
+#     def test_api():
+#         """
+#         test API. Returns API response in JSON
+#         """
+#         endpoint = DeribitAPI.baseurl + '/api/v1/public/test'
+#         print (endpoint)
+#         return requests.get(endpoint).json()
