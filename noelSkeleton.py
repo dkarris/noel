@@ -2,85 +2,122 @@
 Module docstring
 """
 
-from noelclasses import Account, Position, Transaction
+from noelclasses import DeribitAccount, OpenPosition, OpenOrder
+
+# TODO move to config
+DERIBIT_INSTRUMENT = ['BTC-26JAN18']
+KILL_OPEN_ORDERS_ON_INIT = True
+
+def position_aggregate(position_object, open_orders):
+    """
+    Scans opened orders for instruments with positions already opened
+    and mutates positionObject.status: -2,-1,0,1,+2
+    # status:
+        # - 2: in short position with all orders executed, -1: short order
+        #  position where orders sent to exchange, 0: - out of position,
+        #  +1: long order position where orders sent to exchange
+        #  +2: in long position, all orders executed
+    """
+    instrument = position_object.instrument
+    pos_size = 0
+    order_size = 0
+    pos_size = int(position_object.size)
+    for open_order in open_orders:
+        if open_order.instrument == instrument:
+            if open_order.type == "sell":
+                order_size = int(open_order.size) * (-1)
+            else:
+                order_size = int(open_order.size)
+            order_size += order_size
+
+    # Now based on order_size and pos_size set object OpenPosition
+    #  - size_status - in position type
+    #  - position_status - in open / closing mode -
+    # if openpositions and placed orders in one direction => opening position : +1
+    # if opened and placed orders are in different directions => closing position: -1
+    # all other = 0
+    
+    position_object.total_size = pos_size + order_size
+    if order_size == 0 and pos_size > 0:
+        setattr(position_object, 'size_status', +2)
+        setattr(position_object, 'position_status', 0)
+    elif order_size == 0 and pos_size < 0:
+        setattr(position_object, 'size_status', -2)
+        setattr(position_object, 'position_status', 0)
+    elif pos_size == 0 and pos_size == 0:
+        setattr(position_object, 'size_status', 0)
+        setattr(position_object, 'position_status', 0)
+    elif order_size > 0 and pos_size > 0:
+        setattr(position_object, 'size_status', +1)
+        setattr(position_object, 'position_status', +1)
+    elif order_size > 0 and pos_size < 0:
+        setattr(position_object, 'size_status', +1)
+        setattr(position_object, 'position_status', -1)
+    elif order_size < 0 and pos_size < 0:
+        setattr(position_object, 'size_status', -1)
+        setattr(position_object, 'position_status', +1)
+    elif order_size < 0 and pos_size > 0:
+        setattr(position_object, 'size_status', -1)
+        setattr(position_object, 'position_status', -1)
+    position_object.aggregate_size = pos_size + order_size
+    #debug print
+    print 30*'x'
+    print instrument
+    print 'pos_size:' + str(pos_size)
+    print 'order_size:' + str(order_size)
+
 
 def initialize(account):
     """
     Is launched once
     """
-    # TODO move to config
-    kill_open_orders_on_init = True
-    bet_amount = 4000 # in futures contracts where 1 contract = 10 usd
-    # Get account details
-<<<<<<< HEAD
-    account_details = account.get_account_info()
+    if KILL_OPEN_ORDERS_ON_INIT:
+        account.kill_open_orders('futures')
+        print ('killing all opened orders')
     # Find all opened positions
-
-
-    # TODO move retrieval of positions by instrument to Account Method
-    # now the assumption is that only one instrument is traded and
-    # all open posiitons are on one side and can't be sell and buy at the same
-    # time
-    current_position_orders = account_deribit.get_current_positions()[0]
-    current_open_orders = account_deribit.get_open_orders()[0]
-
-=======
-    account_info = account.get_account_info()
-    # Find all opened positions
-    current_position_orders = account_deribit.get_current_positions()
-    current_open_orders = account_deribit.get_open_orders()
-    # move to config
-    kill_open_orders_on_init = True
->>>>>>> 0a718dbc668634f5ab443721bd26a038b5c32ce1
-    if kill_open_orders_on_init:
-        # kill open orders
-        pass
-
-    # set flag if we are in trade position
-<<<<<<< HEAD
-    # assumption that if we are short then we
-    if current_position_orders['direction'] == 'sell' and
-        current_open_orders['direction']:
-            account.state = -1
-
-
-
-
-
-
-    if (current_position_orders>0) or (current_open_orders>0):
-=======
-    if (current_position_orders > 0) or (current_open_orders > 0):
->>>>>>> 0a718dbc668634f5ab443721bd26a038b5c32ce1
-        account.in_trade_position = True
-    else:
-        account.in_trade_position = False
-
+    #account.current_position_orders = account.get_current_positions()
+    _current_open_orders = []
+    _current_positions = []
+    # scan opened orders and add OpenOrder object to Account
+    for _p in account.get_current_positions():
+        newposition = OpenPosition(account, _p['instrument'], _p['averagePrice'],
+                                   _p['direction'], _p['size'], _p['kind'])
+        _current_positions.append(newposition)
+    setattr(account, 'current_positions', _current_positions)
+    for _o in account.get_open_orders():
+        newopenorder = OpenOrder(_o['orderId'], _o['instrument'], _o['direction'],
+                                 _o['price'], _o['quantity'], account,
+                                 _o['filledQuantity'], _o['lastUpdate'])
+        _current_open_orders.append(newopenorder)
+    setattr(account, 'open_orders', _current_open_orders)
     print ('Initialized account "%s" successfully:') % (account.name)
-    print ('Current opened positioned:')
-    for index, obj in enumerate(current_position_orders):
-        print ("Position:" + str(index+1))
-        for key, value in obj.items():
-          print (str(key) + ":" + str(value))
-    # print ('current open orders: %s') % (current_open_orders)
     print ('**********************************************************')
     print ('now print account property after init')
     for key, value in account.account_info.items():
         print (str(key) + ":" + str(value))
+    print ('Current opened positioned:')
+    for _positionobject in account.current_positions:
+        # aggregate current and opened positions by instrument name
+        position_aggregate(_positionobject, account.open_orders)
+        # Code below might be changed to logging
+        print ('**********************************************************')
+        for _k, _v in _positionobject.__dict__.items():
+            print _k, _v
+    print (30*"*")
+    print ('Current opened orders:')
+    for _orderobject in account.open_orders:
+        print ('**********************************************************')
+        for _k, _v in _orderobject.__dict__.items():
+            print _k, _v
 
+    def main(account):
+        """
+        Main body loop
+        """
+        keep_running = True
+        while keep_running:
+            pass
 
-def main(account):
-    """
-    Main body loop
-    """
-    keep_running = True
-    while keep_running:
-        pass
-
-account_deribit = Account('main_account', 'BTC')
-initialize(account_deribit)
-<<<<<<< HEAD
+_account_deribit = DeribitAccount('main_account', 'BTC')
+initialize(_account_deribit)
 #main(account_deribit)
-=======
-# main(account_deribit)
->>>>>>> 0a718dbc668634f5ab443721bd26a038b5c32ce1
