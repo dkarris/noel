@@ -23,12 +23,9 @@ class Account(object):
         self.name = name
         self.currency = currency
         self.enabletrade = False  # can't trade by default
-        # status:
-        # - 2: in short position with all orders executed, -1: short order
-        #  position where orders sent to exchange, 0: - out of position,
-        #  +1: long order position where orders sent to exchange
-        #  +2: in long position, all orders executed
-        self.status = 0
+        self.in_position = False
+        self.open_orders = None # will be set up by initialize function
+        self.current_positions = None # will be set up by initialize function
 
 class DeribitAccount(Account):
     """
@@ -45,7 +42,7 @@ class DeribitAccount(Account):
         execute API deribit call for account_details
         returns JSON with account details
         """
-        # ATODO1 build error handling if deribit_api.account returns error
+        # TODO build error handling if deribit_api.account returns error
         return deribit_api.account()
 
     @staticmethod
@@ -53,7 +50,6 @@ class DeribitAccount(Account):
         """
         Call deribit API and return current positions
         """
-        # Call deribit API
         return deribit_api.positions(*args, **kwargs)
 
     @staticmethod
@@ -110,7 +106,7 @@ class OpenPosition(object):
     Base Position class
     """
     def __init__(self, account, instrument, price, pos_type,
-                 size, kind=None, opentimedate=None,):
+                 size, kind=None, opentimedate=None):
         """
         pos_type = Long / Short
         account = class Account (object)
