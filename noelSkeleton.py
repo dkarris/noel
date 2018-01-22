@@ -1,17 +1,15 @@
 """
 Module docstring
 """
-
+import random
 from noelclasses import DeribitAccount, OpenPosition, OpenOrder
 from noellogging import to_log
-import random
 
 # TODO move to config
-DERIBIT_INSTRUMENT = ['BTC-26JAN18']
 KILL_OPEN_ORDERS_ON_INIT = True
 PROBABILITY_LONG = 0.5
-LOT_SIZE = 10
-
+DEFAULT_LOT_SIZE = 10
+DEFAULT_TRADING_TICKET = 'BTC-26JAN18'
 
 def position_aggregate(position_object, open_orders):
     """
@@ -68,19 +66,81 @@ def position_aggregate(position_object, open_orders):
         setattr(position_object, 'position_status', -1)
     position_object.aggregate_size = pos_size + order_size
     # debug print
-    print 30*'x'
-    print instrument
-    print 'pos_size:' + str(pos_size)
-    print 'order_size:' + str(order_size)
+    to_log(30*'x')
+    to_log(instrument)
+    to_log('pos_size:' + str(pos_size))
+    to_log('order_size:' + str(order_size))
     # debug print end
-def generate_random():
+def generate_order():
     """
     Generate random number and trigger order
     """
     random.seed()
     if random.random() > PROBABILITY_LONG: # go long
+        return 'buy'
+    else:
+        return 'sell'
 
-    else: # go short
+def send_order(instrument,size,direction, price,account):
+    """
+    aggregate function to send order
+    """
+    _string = 'Sending order: direction:{}\ninstrument:{}\nsize:{}\nprice:{}'.format(
+               direction, size, instrument, price)
+    to_log(_string)    
+    if direction == 'buy':
+        result = account.buy_order(instrument, size, price)
+    elif direction == 'sell':
+        result = account.sell_order(instrument,size, price)
+    else:
+        to_log('Wrong direction. Returning None')
+        return None
+    to_log('Result of the transaction')
+    to_log(result['order'])
+    return result
+
+def main_loop(*accounts):
+    """
+    Main body loop
+    """
+    keep_running = True
+    while keep_running:
+        for account in accounts:
+            for _p in account.current_positions:
+                # First of all check flags and based on that define the logic
+                # Possible combinations
+                if _p.size_status == 0: # if we are out of position
+                    # generate order might return +1 - long, -1 sell
+                    # 0 - no signal (reserved for future use)
+                    _direction = generate_order()
+                    _price = account.get_price()['midPrice']
+                    try:
+                        result = send_order(DEFAULT_TRADING_TICKET,
+                                            DEFAULT_LOT_SIZE, _direction,
+                                            _price, account)
+                        result = result['order']
+                        new_order = OpenOrder(result['orderId'], result['instrument'],
+                                              result['direction'], result['price'],
+                                              account, result['filledQuantity'],
+                                              result['created'])
+                        account.open_order.append(new_order)
+                        if result['direction'] == 'sell':
+                            _p.size_status = -1
+                        elif result['direction'] == 'buy':
+                            _p.size_status = +1
+                        _p.position_status = 1
+                        to_log('New position status' + str(_p.position_status))
+                        to_log('New size status' + str(_p.size_status))
+                    except:
+                        to_log('Failed to send order. Exception raised')
+                elif _p.size_status == 2 or _p.size_status == -2:
+                     #if we are in full position
+                    # call check profitability status and probably send close signal
+                    pass
+                elif _p.size_status == 1 or _p.size_status == -1:
+                    #if we are still have some orders placed
+                    # call determine what to do with the orders
+                    pass
 
 
 def initialize(account):
@@ -89,7 +149,7 @@ def initialize(account):
     """
     if KILL_OPEN_ORDERS_ON_INIT:
         account.kill_open_orders('futures')
-        print ('killing all opened orders')
+        to_log('killing all opened orders')
     # Find all opened positions
     #account.current_position_orders = account.get_current_positions()
     _current_open_orders = []
@@ -106,47 +166,25 @@ def initialize(account):
                                  _o['filledQuantity'], _o['lastUpdate'])
         _current_open_orders.append(newopenorder)
     setattr(account, 'open_orders', _current_open_orders)
-    print ('Initialized account "%s" successfully:') % (account.name)
-    print ('**********************************************************')
-    print ('now print account property after init')
+    to_log(('Initialized account "%s" successfully:') % (account.name))
+    to_log('**********************************************************')
+    to_log('now print account property after init')
     for key, value in account.account_info.items():
-        print (str(key) + ":" + str(value))
-    print ('Current opened positioned:')
+        to_log((str(key) + ":" + str(value)))
+    to_log('Current opened positioned:')
     for _positionobject in account.current_positions:
         # aggregate current and opened positions by instrument name
         position_aggregate(_positionobject, account.open_orders)
-        # Code below might be changed to logging
-        print ('**********************************************************')
+        to_log('**********************************************************')
         for _k, _v in _positionobject.__dict__.items():
-            print _k, _v
-    print (30*"*")
-    print ('Current opened orders:')
+            to_log(_k, _v)
+    to_log(30 * "*")
+    to_log('Current opened orders:')
     for _orderobject in account.open_orders:
-        print ('**********************************************************')
+        to_log('**********************************************************')
         for _k, _v in _orderobject.__dict__.items():
-            print _k, _v
+            to_log(_k, _v)
 
-def main_loop(*accounts):
-    """
-    Main body loop
-    """
-    keep_running = True
-    while keep_running:
-        for account in accounts:
-            for _p in account.current_positions:
-                # First of all check flags and based on that define the logic
-                # Possible combinations
-                if _p.size_status == 0: # if we are out of position
-                    # call generate order
-                    pass
-                elif _p.size_status == 2 or _p.size_status == -2:
-                     #if we are in full position
-                    # call check profitability status and probably send close signal
-                    pass
-                elif _p.size_status == 1 or _p.size_status == -1:
-                    #if we are still have some orders placed
-                    # call determine what to do with the orders
-                    pass
 def main():
     """
     main function

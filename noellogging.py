@@ -3,8 +3,15 @@ logging functions for Noel
 """
 import logging
 
-logging.basicConfig(format='%s(asctime)s %(message)s', level=logging.INFO)
+LOG_FILE_NAME = 'log.log'
+DEBUG_PRINT = True
 
-def to_log(*args, **kwargs):
+def to_log(*args):
     ''' wrapper around long name logging.info '''
-    return logging.info(*args, **kwargs)
+    if DEBUG_PRINT:
+        print (args)
+    return logging.info(args)
+
+
+logging.basicConfig(format='%(asctime)s %(message)s',
+                    filename=LOG_FILE_NAME, level=logging.INFO)

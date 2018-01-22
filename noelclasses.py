@@ -60,6 +60,29 @@ class DeribitAccount(Account):
         return deribit_api.getopenorders(*args, **kwargs)
 
     @staticmethod
+    def buy_order(*args, **kwargs):
+        """
+        Call deribit API and generate buy order
+        """
+        return deribit_api.buy(*args, **kwargs)
+
+    @staticmethod
+    def sell_order(*args, **kwargs):
+        """
+        Call deribit API and generate sell order
+        """
+        return deribit_api.sell(*args, **kwargs)
+
+    @staticmethod
+    def get_instrument_info(instrument_name=None):
+        """
+        Call deribit API and get info on that instrument
+        """
+        try:
+            return deribit_api.getsummary(instrument_name)
+        except Exception:
+            return "No instrument with that name"
+    @staticmethod
     def kill_open_orders(order=None):
         """
         Call deribit API and kill orders outstanding
@@ -72,13 +95,13 @@ class DeribitAccount(Account):
                     return deribit_api.cancel(order)
                 except Exception:
                     print ('no order with id:' + str(order))
-                return 
+                return
             else:
                 try:
                     return deribit_api.cancelall(order)
                 except Exception:
-                    print ('caught exception when trying execute' + 
-                           ' order cancel type:' + str(order)) 
+                    print ('caught exception when trying execute' +
+                           ' order cancel type:' + str(order))
     @staticmethod
     def deposit_money():
         """
